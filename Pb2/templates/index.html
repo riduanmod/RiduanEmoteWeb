@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Riduan Emote Panel</title>
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#3b82f6">
+    <link rel="apple-touch-icon" href="https://i.ibb.co.com/QvxY46P2/1777527378786.png">
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --bg-dark: #070b14;
+            --card-bg: rgba(18, 25, 40, 0.65);
+            --card-border: rgba(255, 255, 255, 0.08);
+            --primary-blue: #3b82f6;
+            --primary-hover: #2563eb;
+            --primary-glow: rgba(59, 130, 246, 0.4);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --input-bg: rgba(0, 0, 0, 0.4);
+            --danger: #ef4444;
+            --success: #10b981;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
+
+        body {
+            background-color: var(--bg-dark); color: var(--text-main);
+            min-height: 100vh; padding: 20px; display: flex; flex-direction: column;
+            align-items: center; position: relative; overflow-x: hidden;
+        }
+
+        .bg-fx { position: fixed; inset: 0; z-index: -1; pointer-events: none; }
+        .glow-orb { position: absolute; border-radius: 50%; filter: blur(140px); opacity: 0.4; animation: float 10s infinite alternate ease-in-out; }
+        .orb-1 { top: -10%; left: -10%; width: 40vw; height: 40vw; background: #2563eb; }
+        .orb-2 { bottom: -10%; right: -10%; width: 45vw; height: 45vw; background: #7c3aed; animation-delay: -5s; }
+        @keyframes float { 100% { transform: translate(30px, 40px); } }
+
+        .top-bar { width: 100%; max-width: 1400px; display: flex; justify-content: flex-end; margin-bottom: 20px; z-index: 50; }
+        .admin-btn {
+            background: rgba(255,255,255,0.05); border: 1px solid var(--card-border); color: var(--text-muted);
+            padding: 10px 20px; border-radius: 30px; font-size: 0.9rem; font-weight: 600; cursor: pointer;
+            display: flex; align-items: center; gap: 8px; transition: 0.3s; backdrop-filter: blur(10px);
+        }
+        .admin-btn:hover { background: rgba(59, 130, 246, 0.15); color: white; border-color: var(--primary-blue); box-shadow: 0 0 15px var(--primary-glow); }
+
+        .app-header { text-align: center; margin-bottom: 40px; z-index: 10; }
+        .logo-box {
+            width: 75px; height: 75px; margin: 0 auto 15px; border-radius: 20px; 
+            display: flex; align-items: center; justify-content: center; overflow: hidden;
+            box-shadow: 0 15px 35px var(--primary-glow); border: 2px solid rgba(59, 130, 246, 0.5);
+        }
+        .logo-box img { width: 100%; height: 100%; object-fit: cover; }
+        .app-header h1 { font-size: 2.2rem; font-weight: 800; letter-spacing: -1px; margin-bottom: 5px; text-shadow: 0 0 20px rgba(255,255,255,0.2); }
+        .app-header p { color: var(--text-muted); font-size: 0.95rem; }
+
+        .main-layout { display: grid; grid-template-columns: 1fr; gap: 25px; width: 100%; max-width: 1400px; margin: 0 auto; z-index: 10; }
+        @media (min-width: 1024px) { .main-layout { grid-template-columns: 420px 1fr; align-items: start; } }
+
+        /* 🟢 Z-Index Fixes for Cards */
+        .control-panel { display: flex; flex-direction: column; gap: 25px; }
+        .control-panel .card { position: relative; }
+        .control-panel .card:nth-child(1) { z-index: 30; } /* Highest z-index for dropdown card */
+        .control-panel .card:nth-child(2) { z-index: 20; }
+        .control-panel .card:nth-child(3) { z-index: 10; }
+
+        .card {
+            background: var(--card-bg); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--card-border); border-radius: 24px; padding: 25px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+            animation: slideUp 0.5s ease-out forwards; opacity: 0; transform: translateY(20px);
+        }
+        @keyframes slideUp { to { opacity: 1; transform: translateY(0); } }
+
+        .card-title { font-size: 1.25rem; font-weight: 700; margin-bottom: 5px; text-align: left; display: flex; align-items: center; gap: 10px; }
+        .card-title i { color: var(--primary-blue); }
+        .card-subtitle { font-size: 0.85rem; color: var(--text-muted); text-align: left; margin-bottom: 25px; }
+
+        /* Custom Select Fixed */
+        .custom-select-box { position: relative; margin-bottom: 15px; width: 100%; }
+        .select-selected {
+            background: var(--input-bg); border: 1px solid var(--card-border); padding: 16px 20px;
+            border-radius: 14px; display: flex; justify-content: space-between; align-items: center;
+            cursor: pointer; color: white; font-size: 0.95rem; font-weight: 500; transition: 0.3s;
+        }
+        .select-selected:hover { border-color: rgba(255,255,255,0.2); }
+        .select-selected.active { border-color: var(--primary-blue); box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2); background: rgba(0,0,0,0.6); }
+        .select-selected.active i.fa-chevron-down { transform: rotate(180deg); color: var(--primary-blue); }
+        
+        .select-items {
+            position: absolute; top: 100%; left: 0; right: 0; margin-top: 8px; background: #0f131f;
+            border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 14px; box-shadow: 0 15px 40px rgba(0,0,0,0.9);
+            z-index: 9999; max-height: 250px; overflow-y: auto; opacity: 0; pointer-events: none;
+            transform: translateY(-10px); transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .select-items.show { opacity: 1; pointer-events: auto; transform: translateY(0); }
+        .select-item { padding: 15px 20px; display: flex; align-items: center; gap: 15px; cursor: pointer; border-bottom: 1px solid rgba(255,255,255,0.03); transition: 0.2s; color: var(--text-muted); font-size: 0.95rem; font-weight: 600; }
+        .select-item:hover { background: rgba(59, 130, 246, 0.15); padding-left: 25px; color: white; }
+        .server-flag { font-size: 1.5rem; filter: drop-shadow(0 0 5px rgba(255,255,255,0.1)); }
+
+        .input-wrapper { position: relative; margin-bottom: 15px; width: 100%; }
+        .icon-left { position: absolute; left: 1.2rem; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 1.1rem; transition: 0.3s; }
+        .input-wrapper input, .input-wrapper textarea {
+            width: 100%; background: var(--input-bg); border: 1px solid var(--card-border);
+            border-radius: 14px; color: #fff; font-size: 0.95rem; transition: 0.3s;
+        }
+        .input-wrapper input { padding: 16px 16px 16px 3.5rem; }
+        .input-wrapper textarea { padding: 16px; min-height: 120px; resize: vertical; }
+        .input-wrapper input:focus, .input-wrapper textarea:focus { outline: none; border-color: var(--primary-blue); background: rgba(0,0,0,0.6); box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2); }
+        .input-wrapper input:focus + .icon-left, .input-wrapper input:focus ~ .icon-left { color: var(--primary-blue); }
+
+        .btn-primary {
+            width: 100%; background: linear-gradient(135deg, #3b82f6, #6366f1); color: #fff; border: none; padding: 16px;
+            border-radius: 14px; font-weight: 600; font-size: 1rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; transition: 0.3s; box-shadow: 0 8px 20px rgba(59, 130, 246, 0.3); margin-bottom: 10px;
+        }
+        .btn-primary:hover { transform: translateY(-3px); box-shadow: 0 12px 25px rgba(59, 130, 246, 0.5); filter: brightness(1.1); }
+        .btn-outline { background: rgba(255,255,255,0.02); border: 1px dashed rgba(255,255,255,0.2); box-shadow: none; color: var(--text-muted); }
+        .btn-outline:hover { background: rgba(59, 130, 246, 0.1); border-color: var(--primary-blue); color: var(--primary-blue); transform: none; box-shadow: none; }
+
+        .uid-row { display: flex; gap: 10px; margin-bottom: 15px; animation: slideIn 0.3s ease-out; }
+        .uid-row .input-wrapper { margin-bottom: 0; flex: 1; }
+        .btn-icon { background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); color: var(--danger); width: 55px; border-radius: 14px; cursor: pointer; font-size: 1.2rem; transition: 0.3s; display: grid; place-items: center; }
+        .btn-icon:hover { background: var(--danger); color: white; box-shadow: 0 5px 15px rgba(239, 68, 68, 0.4); transform: scale(1.05); }
+
+        .pills-grid { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 25px; border-bottom: 1px solid var(--card-border); padding-bottom: 20px; }
+        .pill-btn { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); padding: 12px 22px; border-radius: 30px; color: var(--text-muted); font-size: 0.9rem; font-weight: 600; cursor: pointer; transition: 0.3s; }
+        .pill-btn.active, .pill-btn:hover { background: rgba(59, 130, 246, 0.15); border-color: var(--primary-blue); color: white; box-shadow: 0 0 20px rgba(59, 130, 246, 0.25); }
+
+        .emote-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 15px; max-height: 65vh; overflow-y: auto; padding-right: 10px; }
+        @media (min-width: 1024px) { .emote-grid { max-height: calc(100vh - 350px); } }
+        .emote-grid::-webkit-scrollbar { width: 6px; }
+        .emote-grid::-webkit-scrollbar-track { background: rgba(255,255,255,0.02); border-radius: 10px; }
+        .emote-grid::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
+        .emote-card { background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.06); border-radius: 16px; padding: 15px; text-align: center; cursor: pointer; transition: 0.3s; position: relative; overflow: hidden; }
+        .emote-card:hover { border-color: var(--primary-blue); transform: translateY(-5px); box-shadow: 0 10px 25px rgba(59, 130, 246, 0.2); }
+        .emote-card img { width: 100%; height: 65px; object-fit: contain; filter: drop-shadow(0 0 5px rgba(255,255,255,0.1)); transition: 0.3s; position: relative; z-index: 2; }
+        .emote-card:hover img { filter: drop-shadow(0 0 12px var(--primary-blue)); transform: scale(1.15); }
+        .emote-card span { display: block; font-size: 0.7rem; color: var(--text-muted); margin-top: 12px; font-weight: 600; font-family: monospace; position: relative; z-index: 2; }
+
+        .developer-connect { padding: 3rem 0 1rem; text-align: center; width: 100%; max-width: 1400px; margin: auto; z-index: 10; }
+        .dev-tag { color: var(--text-muted); font-size: 1rem; margin-bottom: 1.5rem; }
+        .dev-tag span { color: #fff; font-weight: 800; letter-spacing: 0.5px; }
+        .social-dock { display: flex; justify-content: center; gap: 1.2rem; flex-wrap: wrap; }
+        .social-pill { width: 55px; height: 55px; border-radius: 16px; background: var(--glass-panel); border: 1px solid var(--card-border); display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-size: 1.5rem; text-decoration: none; transition: 0.4s; backdrop-filter: blur(10px); }
+        .social-pill:hover { transform: translateY(-8px) scale(1.1); color: #fff; border-color: rgba(255,255,255,0.3); }
+
+        /* 🟢 Admin Modal Mobile Fixes */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(10px); z-index: 10000; display: none; justify-content: center; align-items: center; padding: 15px; }
+        .modal-overlay.active { display: flex; animation: fadeIn 0.3s; }
+        .modal-content { background: var(--card-bg); border: 1px solid var(--card-border); padding: 35px; border-radius: 24px; width: 100%; max-width: 500px; position: relative; box-shadow: 0 25px 60px rgba(0,0,0,0.8); max-height: 90vh; overflow-y: auto; }
+        .close-modal { position: absolute; top: 15px; right: 20px; color: var(--text-muted); cursor: pointer; font-size: 1.8rem; transition: 0.3s; }
+        #adminUploadSection { display: none; }
+
+        /* 🟢 Toasts Mobile Fixes */
+        #toast-container { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 10001; display: flex; flex-direction: column; gap: 15px; width: 90%; max-width: 450px; pointer-events: none; }
+        .toast { background: rgba(15, 19, 34, 0.95); border: 1px solid rgba(255,255,255,0.1); padding: 16px 20px; border-radius: 16px; color: white; font-weight: 500; font-size: 0.95rem; display: flex; align-items: center; gap: 15px; animation: slideUpToast 0.4s forwards; box-shadow: 0 15px 40px rgba(0,0,0,0.6); }
+        .toast.success { border-left: 4px solid var(--success); }
+        .toast.success i { color: var(--success); font-size: 1.4rem; }
+        .toast.error { border-left: 4px solid var(--danger); }
+        .toast.error i { color: var(--danger); font-size: 1.4rem; }
+        .toast.fadeOut { animation: fadeOutToast 0.4s forwards; }
+
+        @keyframes slideUpToast { from { opacity: 0; transform: translateY(30px) translateX(-50%); } to { opacity: 1; transform: translateY(0) translateX(-50%); } }
+        @keyframes fadeOutToast { to { opacity: 0; transform: translateY(-30px) translateX(-50%); } }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideIn { from { opacity: 0; transform: translateX(-20px); } to { opacity: 1; transform: translateX(0); } }
+
+        @media (max-width: 480px) {
+            .app-header h1 { font-size: 1.8rem; }
+            .modal-content { padding: 20px; }
+            .card { padding: 20px; }
+            .select-selected { padding: 14px 15px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="bg-fx">
+        <div class="glow-orb orb-1"></div>
+        <div class="glow-orb orb-2"></div>
+    </div>
+
+    <div class="top-bar">
+        <button class="admin-btn" onclick="openAdminModal()">
+            <i class="fa-solid fa-shield-halved"></i> Admin Console
+        </button>
+    </div>
+
+    <div class="app-header">
+        <div class="logo-box">
+            <img src="https://i.ibb.co.com/QvxY46P2/1777527378786.png" alt="Riduan Emote Pro">
+        </div>
+        <h1>Riduan Emote Panel</h1>
+        <p>Advanced Session & Emote Execution Framework</p>
+    </div>
+
+    <div class="main-layout">
+        <div class="control-panel">
+            
+            <div class="card">
+                <h2 class="card-title"><i class="fa-solid fa-sliders"></i> Target Configuration</h2>
+                <p class="card-subtitle">Select operational server and active node</p>
+                
+                <div class="custom-select-box" id="serverDropdownWrapper">
+                    <div class="select-selected" onclick="toggleDropdown('serverDropdownList')">
+                        <span id="serverSelectedText" style="display:flex; align-items:center; gap:12px;">
+                            <i class="fa-solid fa-globe" style="color:var(--text-muted); font-size: 1.3rem;"></i> Select Server Region
+                        </span>
+                        <i class="fa-solid fa-chevron-down"></i>
+                    </div>
+                    <div class="select-items" id="serverDropdownList"></div>
+                </div>
+                <input type="hidden" id="selectedServer" value="">
+
+                <div class="custom-select-box" id="botDropdownWrapper">
+                    <div class="select-selected" onclick="toggleDropdown('botDropdownList')">
+                        <span id="botSelectedText" style="display:flex; align-items:center; gap:12px;">
+                            <i class="fa-solid fa-robot" style="color:var(--text-muted); font-size: 1.3rem;"></i> Select Active Bot
+                        </span>
+                        <i class="fa-solid fa-chevron-down"></i>
+                    </div>
+                    <div class="select-items" id="botDropdownList">
+                        <div class="select-item" style="color: var(--text-muted);">Please select a server first</div>
+                    </div>
+                </div>
+                <input type="hidden" id="selectedBot" value="">
+            </div>
+
+            <div class="card">
+                <h2 class="card-title"><i class="fa-solid fa-bolt-lightning"></i> Flash Hit Engine</h2>
+                <p class="card-subtitle">Setup target UIDs to execute emotes instantly</p>
+                
+                <div class="input-wrapper">
+                    <i class="fa-solid fa-users icon-left"></i>
+                    <input type="number" id="teamCode" placeholder="Target Team Code (e.g. 0740495)">
+                </div>
+
+                <div id="uidContainer">
+                    <div class="uid-row">
+                        <div class="input-wrapper">
+                            <i class="fa-solid fa-crosshairs icon-left"></i>
+                            <input type="number" class="target-uid-input" placeholder="Target Player UID 1">
+                        </div>
+                    </div>
+                </div>
+                
+                <button class="btn-primary btn-outline" id="addUidBtn" onclick="addUidField()">
+                    <i class="fa-solid fa-plus"></i> Add Target UID
+                </button>
+            </div>
+
+            <div class="card">
+                <h2 class="card-title"><i class="fa-solid fa-user-plus"></i> Squad Invite System</h2>
+                <p class="card-subtitle">Send a 5-player squad invite instantly</p>
+                
+                <div class="input-wrapper">
+                    <i class="fa-solid fa-id-badge icon-left"></i>
+                    <input type="number" id="inviteTargetUid" placeholder="Paste Target UID here...">
+                </div>
+                <button class="btn-primary" onclick="sendInvite()">
+                    <span>Send Invite Now</span> <i class="fa-solid fa-paper-plane"></i>
+                </button>
+            </div>
+        </div>
+
+        <div class="emote-panel">
+            <div class="card">
+                <h2 class="card-title"><i class="fa-solid fa-layer-group"></i> Emote Database</h2>
+                <p class="card-subtitle">Click on any emote to execute Flash Hit sequence</p>
+                
+                <div class="pills-grid" id="categoryTabs"></div>
+                <div class="emote-grid" id="emoteGrid"></div>
+            </div>
+        </div>
+    </div>
+
+    <section class="developer-connect">
+        <p class="dev-tag">Developed by <span>Riduanul Islam</span></p>
+        <div class="social-dock">
+            <a href="https://m.youtube.com/@riduan0?sub_confirmation=1" target="_blank" class="social-pill yt"><i class="fa-brands fa-youtube"></i></a>
+            <a href="https://www.facebook.com/share/1KfA6dirNN/" target="_blank" class="social-pill fb"><i class="fa-brands fa-facebook-f"></i></a>
+            <a href="https://www.instagram.com/riduanulislam03" target="_blank" class="social-pill ig"><i class="fa-brands fa-instagram"></i></a>
+            <a href="https://www.tiktok.com/@riduanulislam03" target="_blank" class="social-pill tt"><i class="fa-brands fa-tiktok"></i></a>
+            <a href="https://t.me/RiduanOfficialBD" target="_blank" class="social-pill tg"><i class="fa-brands fa-telegram"></i></a>
+        </div>
+    </section>
+
+    <div class="modal-overlay" id="adminModal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeAdminModal()"><i class="fa-solid fa-xmark"></i></span>
+            <h2 class="card-title" style="margin-bottom: 25px; font-size: 1.5rem;"><i class="fa-solid fa-database"></i> Database Manager</h2>
+            
+            <div id="adminLoginSection">
+                <p class="card-subtitle">Authenticate to access system core</p>
+                <div class="input-wrapper">
+                    <i class="fa-solid fa-user-shield icon-left"></i>
+                    <input type="text" id="adminUser" placeholder="Admin Username">
+                </div>
+                <div class="input-wrapper">
+                    <i class="fa-solid fa-lock icon-left"></i>
+                    <input type="password" id="adminPass" placeholder="Admin Password">
+                </div>
+                <button class="btn-primary" onclick="verifyAdmin()">
+                    Authenticate <i class="fa-solid fa-arrow-right-to-bracket"></i>
+                </button>
+            </div>
+
+            <div id="adminUploadSection">
+                <p class="card-subtitle">Upload new emote IDs into database</p>
+                <div class="custom-select-box" style="margin-bottom: 15px;">
+                    <div class="select-selected" onclick="toggleDropdown('adminCategoryList')" id="adminCatHeader">
+                        <span id="adminCatText" style="display:flex; align-items:center; gap:10px;">
+                            <i class="fa-solid fa-folder-open" style="color:var(--primary-blue);"></i> Evo Emotes
+                        </span>
+                        <i class="fa-solid fa-chevron-down"></i>
+                    </div>
+                    <div class="select-items" id="adminCategoryList">
+                        <div class="select-item" onclick="setAdminCategory('Evo Emotes')"><i class="fa-solid fa-folder"></i> Evo Emotes</div>
+                        <div class="select-item" onclick="setAdminCategory('Rare Emotes')"><i class="fa-solid fa-folder"></i> Rare Emotes</div>
+                        <div class="select-item" onclick="setAdminCategory('Old Emotes')"><i class="fa-solid fa-folder"></i> Old Emotes</div>
+                    </div>
+                </div>
+                <input type="hidden" id="adminCategory" value="Evo Emotes">
+
+                <div class="input-wrapper" style="margin-bottom: 20px;">
+                    <textarea id="adminEmotesList" class="custom-input" placeholder="Paste Emote IDs separated by comma...&#10;Ex: 909042013, 909042016"></textarea>
+                </div>
+                <button class="btn-primary" onclick="uploadEmotes()">
+                    Upload to Database <i class="fa-solid fa-cloud-arrow-up"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast-container"></div>
+
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js').catch(()=>{});
+            });
+        }
+
+        const serverMap = {
+            "BD_SERVER": { name: "Bangladesh Server", flag: "🇧🇩" },
+            "IND_SERVER": { name: "India Server", flag: "🇮🇳" },
+            "PK_SERVER": { name: "Pakistan Server", flag: "🇵🇰" },
+            "SG_SERVER": { name: "Singapore Server", flag: "🇸🇬" },
+            "BR_SERVER": { name: "Brazil Server", flag: "🇧🇷" },
+            "SAC_SERVER": { name: "South America Server", flag: "🌎" },
+            "NA_SERVER": { name: "North America Server", flag: "🇺🇸" },
+            "ME_SERVER": { name: "Middle East Server", flag: "🇦🇪" },
+            "TH_SERVER": { name: "Thailand Server", flag: "🇹🇭" },
+            "VN_SERVER": { name: "Vietnam Server", flag: "🇻🇳" },
+            "US_SERVER": { name: "United States Server", flag: "🇺🇸" },
+            "RU_SERVER": { name: "Russia Server", flag: "🇷🇺" },
+            "EU_SERVER": { name: "Europe Server", flag: "🇪🇺" }
+        };
+
+        let activeData = {};
+        let emotesData = {};
+        let verifiedUser = "";
+        let verifiedPass = "";
+
+        async function initApp() {
+            try {
+                const botRes = await fetch('/api/bots');
+                activeData = await botRes.json();
+                renderServerDropdown();
+                await loadEmotes();
+            } catch (err) { showToast("API Connection Failed", "error"); }
+        }
+
+        function toggleDropdown(id) {
+            document.querySelectorAll('.select-items').forEach(el => { if (el.id !== id) el.classList.remove('show'); });
+            document.querySelectorAll('.select-selected').forEach(el => { if (el.nextElementSibling.id !== id) el.classList.remove('active'); });
+            const list = document.getElementById(id);
+            list.classList.toggle('show');
+            list.previousElementSibling.classList.toggle('active');
+        }
+
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.custom-select-box')) {
+                document.querySelectorAll('.select-items').forEach(el => el.classList.remove('show'));
+                document.querySelectorAll('.select-selected').forEach(el => el.classList.remove('active'));
+            }
+        });
+
+        function renderServerDropdown() {
+            const list = document.getElementById('serverDropdownList');
+            list.innerHTML = '';
+            let hasServers = false;
+
+            for (let server in activeData) {
+                if(activeData[server].length > 0) {
+                    hasServers = true;
+                    let info = serverMap[server];
+                    if(!info) {
+                        let cleanName = server.replace('_SERVER', '').replace('_', ' ');
+                        info = { name: cleanName + " Server", flag: "🌍" };
+                    }
+                    list.innerHTML += `
+                        <div class="select-item" onclick="selectServer('${server}', '${info.flag}', '${info.name}')">
+                            <span class="server-flag">${info.flag}</span>
+                            <span style="color:white;">${info.name}</span>
+                        </div>
+                    `;
+                }
+            }
+            if(!hasServers) list.innerHTML = `<div class="select-item" style="color:var(--text-muted)">No Active Servers Found</div>`;
+        }
+
+        function selectServer(serverKey, flag, name) {
+            document.getElementById('selectedServer').value = serverKey;
+            document.getElementById('serverSelectedText').innerHTML = `<span class="server-flag">${flag}</span> <span style="color:white; font-weight:600;">${name}</span>`;
+            document.getElementById('serverDropdownList').classList.remove('show');
+            document.getElementById('serverDropdownWrapper').querySelector('.select-selected').classList.remove('active');
+            
+            document.getElementById('selectedBot').value = '';
+            document.getElementById('botSelectedText').innerHTML = `<i class="fa-solid fa-robot fa-fade" style="color:var(--primary-blue); font-size: 1.3rem;"></i> Select Active Bot`;
+            renderBotDropdown(serverKey);
+        }
+
+        function renderBotDropdown(serverKey) {
+            const list = document.getElementById('botDropdownList');
+            list.innerHTML = '';
+            if(activeData[serverKey] && activeData[serverKey].length > 0) {
+                activeData[serverKey].forEach((uid, index) => {
+                    list.innerHTML += `
+                        <div class="select-item" onclick="selectBot('${uid}', ${index + 1})">
+                            <i class="fa-solid fa-robot" style="color:var(--primary-blue); font-size: 1.3rem;"></i>
+                            <span style="color:white;">Bot 0${index + 1} <span style="color:var(--text-muted); font-size:0.85rem; margin-left:5px;">(${uid})</span></span>
+                        </div>
+                    `;
+                });
+            }
+        }
+
+        function selectBot(uid, index) {
+            document.getElementById('selectedBot').value = uid;
+            document.getElementById('botSelectedText').innerHTML = `<i class="fa-solid fa-circle-check" style="color:var(--success); font-size: 1.3rem;"></i> <span style="color:white; font-weight:600;">Bot 0${index} (${uid})</span>`;
+            document.getElementById('botDropdownList').classList.remove('show');
+            document.getElementById('botDropdownWrapper').querySelector('.select-selected').classList.remove('active');
+        }
+
+        function setAdminCategory(catName) {
+            document.getElementById('adminCategory').value = catName;
+            document.getElementById('adminCatText').innerHTML = `<i class="fa-solid fa-folder-open" style="color:var(--primary-blue);"></i> <span style="color:white; font-weight:600;">${catName}</span>`;
+            document.getElementById('adminCategoryList').classList.remove('show');
+            document.getElementById('adminCatHeader').classList.remove('active');
+        }
+
+        async function loadEmotes() {
+            const emoteRes = await fetch('/api/emotes');
+            emotesData = await emoteRes.json();
+            
+            const tabs = document.getElementById('categoryTabs');
+            tabs.innerHTML = '';
+            let first = true;
+            for (let cat in emotesData) {
+                tabs.innerHTML += `<button class="pill-btn ${first ? 'active' : ''}" onclick="showEmotes('${cat}', this)">${cat}</button>`;
+                if (first) { showEmotes(cat, null); first = false; }
+            }
+        }
+
+        function showEmotes(category, btnEl) {
+            if (btnEl) {
+                document.querySelectorAll('.pill-btn').forEach(b => b.classList.remove('active'));
+                btnEl.classList.add('active');
+            }
+            const grid = document.getElementById('emoteGrid');
+            grid.innerHTML = '';
+            if(emotesData[category]){
+                emotesData[category].forEach(id => {
+                    grid.innerHTML += `
+                        <div class="emote-card" onclick="triggerHit(${id})">
+                            <img src="https://cdn.jsdelivr.net/gh/ShahGCreator/icon@main/PNG/${id}.png" onerror="this.src='https://cdn.jsdelivr.net/gh/ShahGCreator/icon@main/PNG/0.png'">
+                            <span>${id}</span>
+                        </div>
+                    `;
+                });
+            }
+        }
+
+        function addUidField() {
+            const container = document.getElementById('uidContainer');
+            const currentCount = container.children.length;
+            if (currentCount >= 4) { showToast("Maximum 4 Target UIDs Allowed!", "error"); return; }
+
+            const div = document.createElement('div');
+            div.className = 'uid-row';
+            div.innerHTML = `
+                <div class="input-wrapper">
+                    <i class="fa-solid fa-crosshairs icon-left"></i>
+                    <input type="number" class="target-uid-input" placeholder="Target Player UID ${currentCount + 1}">
+                </div>
+                <button class="btn-icon" onclick="removeUidField(this)"><i class="fa-solid fa-trash-can"></i></button>
+            `;
+            container.appendChild(div);
+            if (container.children.length >= 4) { document.getElementById('addUidBtn').style.display = 'none'; }
+        }
+
+        function removeUidField(btn) {
+            btn.parentElement.remove();
+            document.getElementById('addUidBtn').style.display = 'flex'; 
+            const inputs = document.querySelectorAll('.target-uid-input');
+            inputs.forEach((input, idx) => { input.placeholder = `Target Player UID ${idx + 1}`; });
+        }
+
+        async function triggerHit(emoteId) {
+            const server = document.getElementById('selectedServer').value;
+            const botUid = document.getElementById('selectedBot').value;
+            const teamCode = document.getElementById('teamCode').value;
+            const uidInputs = document.querySelectorAll('.target-uid-input');
+            let uids = [];
+            uidInputs.forEach(input => { if(input.value.trim() !== "") uids.push(input.value.trim()); });
+
+            if (!server || !botUid) return showToast("Select Server & Bot Account!", "error");
+            if (!teamCode) return showToast("Team Code is required!", "error");
+            if (uids.length === 0) return showToast("Enter at least one Target UID!", "error");
+
+            const payload = { server, bot_uid: botUid, team_code: teamCode, target_uids: uids, emote_id: emoteId };
+
+            try {
+                showToast("Executing Flash Hit...", "success");
+                const res = await fetch('/api/trigger', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) });
+                const data = await res.json();
+                if(data.status === 'success') showToast(`Emote Broadcasted!`, "success");
+                else showToast(`Error: ${data.error}`, "error");
+            } catch (err) { showToast("Connection Dropped!", "error"); }
+        }
+
+        async function sendInvite() {
+            const server = document.getElementById('selectedServer').value;
+            const botUid = document.getElementById('selectedBot').value;
+            const targetUid = document.getElementById('inviteTargetUid').value.trim();
+
+            if (!server || !botUid) return showToast("Select Server & Bot Account!", "error");
+            if (!targetUid) return showToast("Target Player UID required!", "error");
+
+            const payload = { server, bot_uid: botUid, target_uid: targetUid };
+
+            try {
+                showToast("Transmitting Squad Invite...", "success");
+                const res = await fetch('/api/invite', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) });
+                const data = await res.json();
+                if(data.status === 'success') showToast(`Invite Dispatched Successfully!`, "success");
+                else showToast(`Error: ${data.error}`, "error");
+            } catch (err) { showToast("Connection Dropped!", "error"); }
+        }
+
+        function openAdminModal() {
+            document.getElementById('adminModal').classList.add('active');
+            if (verifiedUser && verifiedPass) {
+                document.getElementById('adminLoginSection').style.display = 'none';
+                document.getElementById('adminUploadSection').style.display = 'block';
+            } else {
+                document.getElementById('adminLoginSection').style.display = 'block';
+                document.getElementById('adminUploadSection').style.display = 'none';
+            }
+        }
+
+        function closeAdminModal() { document.getElementById('adminModal').classList.remove('active'); }
+
+        function verifyAdmin() {
+            const u = document.getElementById('adminUser').value;
+            const p = document.getElementById('adminPass').value;
+            if (u === 'riduan03' && p === 'riduan03') {
+                verifiedUser = u; verifiedPass = p;
+                showToast("Admin Authenticated", "success");
+                openAdminModal(); 
+            } else {
+                showToast("Access Denied", "error");
+            }
+        }
+
+        async function uploadEmotes() {
+            const category = document.getElementById('adminCategory').value;
+            const emotesRaw = document.getElementById('adminEmotesList').value;
+
+            if(!emotesRaw) return showToast("Data field is empty!", "error");
+            const emotesArray = emotesRaw.split(/[\n,]+/).map(u => u.trim()).filter(u => u !== "");
+
+            const payload = { username: verifiedUser, password: verifiedPass, category: category, emotes: emotesArray };
+
+            try {
+                const res = await fetch('/api/admin/upload', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) });
+                if(res.status === 401) {
+                    verifiedUser = ""; verifiedPass = ""; closeAdminModal();
+                    return showToast("Access Revoked", "error");
+                }
+                const data = await res.json();
+                if(data.status === 'success') {
+                    showToast(`${data.added} New Items Synced!`, "success");
+                    document.getElementById('adminEmotesList').value = ""; 
+                    await loadEmotes(); 
+                }
+            } catch(e) { showToast("Database Upload Failed!", "error"); }
+        }
+
+        function showToast(msg, type) {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            let icon = type === 'success' ? '<i class="fa-solid fa-circle-check"></i>' : '<i class="fa-solid fa-triangle-exclamation"></i>';
+            toast.innerHTML = `<span>${icon}</span> <span>${msg}</span>`;
+            container.appendChild(toast);
+            setTimeout(() => { toast.classList.add('fadeOut'); setTimeout(() => toast.remove(), 400); }, 3000);
+        }
+
+        initApp();
+    </script>
+</body>
+</html>
