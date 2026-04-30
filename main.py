@@ -11,6 +11,7 @@ import ssl
 import urllib3
 import aiohttp
 import threading
+import shutil
 from datetime import datetime
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad, unpad
@@ -40,6 +41,26 @@ Hr = {
 app = Flask(__name__)
 GLOBAL_BOTS = {} 
 bot_loop = asyncio.new_event_loop()
+
+# ==========================================
+# 🟢 VERCEL READ-ONLY FILE SYSTEM FIX
+# ==========================================
+EMOTES_FILE = "/tmp/emotes.json"
+
+def setup_vercel_storage():
+    """Vercel-এর /tmp ফোল্ডারে ডেটাবেস কপি করে নিবে, যাতে রাইট করা যায়"""
+    if not os.path.exists(EMOTES_FILE):
+        try:
+            if os.path.exists("emotes.json"):
+                shutil.copy("emotes.json", EMOTES_FILE)
+            else:
+                with open(EMOTES_FILE, "w") as f:
+                    json.dump({"Evo Emotes": [], "Rare Emotes": [], "Old Emotes": [], "All Emotes": []}, f)
+        except Exception as e:
+            print(f"Storage Setup Error: {e}")
+
+setup_vercel_storage()
+# ==========================================
 
 class BotState:
     def __init__(self, uid, password, config_server_name="UNKNOWN"):
@@ -151,12 +172,6 @@ async def DecRypTLoGinDaTa(LoGinDaTa):
     proto.ParseFromString(LoGinDaTa)
     return proto
 
-async def DecodeWhisperMessage(hex_packet):
-    packet = bytes.fromhex(hex_packet)
-    proto = DEcwHisPErMsG_pb2.DecodeWhisper()
-    proto.ParseFromString(packet)
-    return proto
-    
 async def xAuThSTarTuP(TarGeT, token, timestamp, key, iv):
     uid_hex = hex(TarGeT)[2:]
     uid_length = len(uid_hex)
@@ -167,6 +182,7 @@ async def xAuThSTarTuP(TarGeT, token, timestamp, key, iv):
     headers = '0000000' if uid_length == 9 else '00000000' if uid_length == 8 else '000000' if uid_length == 10 else '000000000'
     return f"0115{headers}{uid_hex}{encrypted_timestamp}00000{encrypted_packet_length}{encrypted_packet}"
 
+# ----------------- TCP CONNECTIONS -----------------
 async def TcPOnLine(ip, port, AutHToKen, bot, reconnect_delay=0.5):
     while True:
         try:
@@ -208,18 +224,19 @@ async def TcPChaT(ip, port, AutHToKen, bot, reconnect_delay=0.5):
         except Exception as e: bot.whisper_writer = None
         await asyncio.sleep(reconnect_delay)
 
+# ----------------- ACCOUNT HANDLER -----------------
 async def RunAccount(bot: BotState):
     login_attempts = 0
     max_attempts = 3
+    
     while True:
         try:
             open_id, access_token = await GeNeRaTeAccEss(bot.login_uid, bot.password)
             if not open_id: 
                 login_attempts += 1
                 if login_attempts >= max_attempts:
-                    print(f"[🚫 SKIPPED] Account {bot.login_uid} ({bot.config_server_name}) failed {max_attempts} times.")
+                    print(f"[🚫 SKIPPED] Account {bot.login_uid} failed {max_attempts} times.")
                     return 
-                print(f"[❌ ERROR] Login Failed {bot.login_uid}. Retrying...")
                 await asyncio.sleep(5)
                 continue
             
@@ -251,7 +268,7 @@ async def RunAccount(bot: BotState):
 
             AutHToKen = await xAuThSTarTuP(int(bot.actual_bot_uid), MajoRLoGinauTh.token, int(MajoRLoGinauTh.timestamp), bot.key, bot.iv)
             
-            print(f"[✅ SUCCESS] Category: {bot.config_server_name:<11} | Server: {bot.region.upper():<4} | Acc: {bot.login_uid:<10} | Name: {DecodedLogin.AccountName} | Status: ONLINE")
+            print(f"[✅ SUCCESS] Category: {bot.config_server_name:<11} | Acc: {bot.login_uid} ONLINE")
             
             task1 = asyncio.create_task(TcPChaT(ChaTiP, ChaTporT, AutHToKen, bot))
             task2 = asyncio.create_task(TcPOnLine(OnLineiP, OnLineporT, AutHToKen, bot))
@@ -280,13 +297,24 @@ def start_bot_thread(config):
     asyncio.set_event_loop(bot_loop)
     bot_loop.run_until_complete(RunAllBots(config))
 
+# 🟢 Auto-start background process on Vercel initialization
+try:
+    with open("bot_config.json", "r") as f:
+        cfg = json.load(f)
+    threading.Thread(target=start_bot_thread, args=(cfg,), daemon=True).start()
+except Exception as e:
+    print(f"Bot init error: {e}")
 
-# ----------------- FLASK & PWA DASHBOARD ROUTES -----------------
+# ----------------- WEB DASHBOARD ROUTES (FLASK) -----------------
 @app.route('/')
 def home():
     return render_template('index.html')
 
-# PWA Manifest Route
+# 🟢 KEEP ALIVE ROUTE FOR VERCEL
+@app.route('/api/ping')
+def ping():
+    return jsonify({"status": "active", "timestamp": str(datetime.now())})
+
 @app.route('/manifest.json')
 def manifest():
     return jsonify({
@@ -294,23 +322,14 @@ def manifest():
         "short_name": "Emote Pro",
         "start_url": "/",
         "display": "standalone",
-        "background_color": "#05050a",
+        "background_color": "#070b14",
         "theme_color": "#3b82f6",
-        "icons": [{
-            "src": "https://i.ibb.co.com/QvxY46P2/1777527378786.png",
-            "sizes": "512x512",
-            "type": "image/png"
-        }]
+        "icons": [{"src": "https://i.ibb.co.com/QvxY46P2/1777527378786.png", "sizes": "512x512", "type": "image/png"}]
     })
 
-# PWA Service Worker Route
 @app.route('/sw.js')
 def sw():
-    sw_content = """
-    self.addEventListener('install', (e) => { self.skipWaiting(); });
-    self.addEventListener('activate', (e) => { e.waitUntil(clients.claim()); });
-    self.addEventListener('fetch', (e) => { e.respondWith(fetch(e.request)); });
-    """
+    sw_content = "self.addEventListener('install', (e) => { self.skipWaiting(); }); self.addEventListener('activate', (e) => { e.waitUntil(clients.claim()); }); self.addEventListener('fetch', (e) => { e.respondWith(fetch(e.request)); });"
     return app.response_class(sw_content, mimetype='application/javascript')
 
 @app.route('/api/bots')
@@ -323,7 +342,7 @@ def get_active_bots():
 @app.route('/api/emotes')
 def get_emotes():
     try:
-        with open("emotes.json", "r") as f:
+        with open(EMOTES_FILE, "r") as f:
             return jsonify(json.load(f))
     except:
         return jsonify({"Error": "emotes.json not found"})
@@ -412,7 +431,7 @@ def admin_upload():
     raw_ids = data.get('emotes', [])
     
     try:
-        with open("emotes.json", "r") as f: emotes_data = json.load(f)
+        with open(EMOTES_FILE, "r") as f: emotes_data = json.load(f)
     except:
         emotes_data = {"Evo Emotes": [], "Rare Emotes": [], "Old Emotes": [], "All Emotes": []}
         
@@ -435,41 +454,12 @@ def admin_upload():
                 existing_all.add(eid_int)
         except: pass
         
-    with open("emotes.json", "w") as f:
+    # Write to /tmp/emotes.json for Vercel
+    with open(EMOTES_FILE, "w") as f:
         json.dump(emotes_data, f, indent=2)
         
     return jsonify({"status": "success", "added": added})
 
-def get_local_ip():
-    try:
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.connect(("8.8.8.8", 80))
-        ip = s.getsockname()[0]
-        s.close()
-        return ip
-    except Exception:
-        return "127.0.0.1"
-
 if __name__ == '__main__':
-    os.system('clear')
-    try: print(render('Riduan', colors=['white', 'green'], align='center'))
-    except: pass
-    
-    print("\n💡 Architecture: Ultimate PWA Web Controller & Smart Multi-Bot")
-    print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
-
-    try:
-        with open("bot_config.json", "r") as f:
-            config = json.load(f)
-            
-        threading.Thread(target=start_bot_thread, args=(config,), daemon=True).start()
-        
-        local_ip = get_local_ip()
-        print(f"🔥 WEB DASHBOARD IS READY!")
-        print(f"👉 Local Access (Same Device): http://127.0.0.1:5000")
-        print(f"👉 LAN Access (Other Devices): http://{local_ip}:5000\n")
-        
-        app.run(host='0.0.0.0', port=5000, debug=False, use_reloader=False)
-            
-    except Exception as e:
-        print(f"❌ Initialization Error: {e}")
+    app.run(host='0.0.0.0', port=5000, debug=False, use_reloader=False)
+                
