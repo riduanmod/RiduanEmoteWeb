@@ -1,0 +1,33 @@
+{
+  "BD_SERVER": [
+    {"uid": "4715367181", "password": "Riduan_6OT79_RiduanOfficialBD_HPW00"},
+    {"uid": "4376707854", "password": "Riduan_PYBOH_RiduanOfficialBD_9FEU1"}
+  ],
+  "IND_SERVER": [
+    {"uid": "4715367908", "password": "Riduan_LXHK5_RiduanOfficialBD_IWQ2T"}
+  ],
+  "SG_SERVER": [
+    {"uid": "4715368797", "password": "Riduan_0OIXN_RiduanOfficialBD_5KKXG"}
+  ],
+  "BR_SERVER": [
+    {"uid": "4715369409", "password": "Riduan_DCMHQ_RiduanOfficialBD_N685M"}
+  ],
+  "SAC_SERVER": [
+    {"uid": "4715371578", "password": "Riduan_7OMWT_RiduanOfficialBD_W7EIF"}
+  ],
+  "NA_SERVER": [
+    {"uid": "4715372332", "password": "Riduan_0GRTA_RiduanOfficialBD_G1EKA"}
+  ],
+  "ME_SERVER": [
+    {"uid": "4715373297", "password": "Riduan_5N8UH_RiduanOfficialBD_135OI"}
+  ],
+  "TH_SERVER": [
+    {"uid": "4715373897", "password": "Riduan_9QNA4_RiduanOfficialBD_YOBUF"}
+  ],
+  "VN_SERVER": [
+    {"uid": "4715374576", "password": "Riduan_SZV28_RiduanOfficialBD_6U4B2"}
+  ],
+  "US_SERVER": [
+    {"uid": "4715376963", "password": "Riduan_M4NWG_RiduanOfficialBD_7WV4U"}
+  ]
+}
